@@ -64,7 +64,11 @@ export class TapoPlatformAccessory {
   async setOn(value: CharacteristicValue) {
     try {
       const device = await this.getTapoDevice();
-      await device.turnOn(value as boolean);
+      if (value) {
+        await device.turnOn();
+      } else {
+        await device.turnOff();
+      }
       this.platform.log.debug('Set Characteristic On ->', value);
     } catch (error) {
       this.platform.log.error('Failed to set On characteristic:', error);
@@ -87,8 +91,9 @@ export class TapoPlatformAccessory {
   async setBrightness(value: CharacteristicValue) {
     try {
       const device = await this.getTapoDevice();
-      await device.setBrightness(value as number);
-      this.platform.log.debug('Set Characteristic Brightness -> ', value);
+      const brightnessLevel = typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 100;
+      await device.setBrightness(brightnessLevel);
+      this.platform.log.debug('Set Characteristic Brightness -> ', brightnessLevel);
     } catch (error) {
       this.platform.log.error('Failed to set Brightness characteristic:', error);
     }
@@ -98,7 +103,8 @@ export class TapoPlatformAccessory {
     try {
       const device = await this.getTapoDevice();
       const saturation = this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
-      await device.setColor(value as number, saturation);
+      const brightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
+      await device.setHSL(value as number, saturation, brightness);
       this.platform.log.debug('Set Characteristic Hue -> ', value);
     } catch (error) {
       this.platform.log.error('Failed to set Hue characteristic:', error);
@@ -109,7 +115,8 @@ export class TapoPlatformAccessory {
     try {
       const device = await this.getTapoDevice();
       const hue = this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
-      await device.setColor(hue, value as number);
+      const brightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
+      await device.setHSL(hue, value as number, brightness);
       this.platform.log.debug('Set Characteristic Saturation -> ', value);
     } catch (error) {
       this.platform.log.error('Failed to set Saturation characteristic:', error);
