@@ -1,22 +1,22 @@
 {
-  "name": "homebridge-plugin-name",
-  "displayName": "Plugin Name",
+  "name": "@say4n/homebridge-tapo-smart-light",
+  "displayName": "Homebridge Tapo L630",
   "type": "module",
-  "version": "1.0.0",
-  "private": true,
-  "description": "A short description about what your plugin does.",
-  "author": "Your Name",
+  "version": "1.0.1",
+  "description": "A Homebridge plugin for Tapo L630 smart lights.",
+  "author": "say4n",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/USERNAME/GITHUB_PROJECT_NAME#readme",
+  "homepage": "https://github.com/say4n/homebridge-tapo-smart-light#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME.git"
+    "url": "https://github.com/say4n/homebridge-tapo-smart-light.git"
   },
   "bugs": {
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME/issues"
+    "url": "https://github.com/say4n/homebridge-tapo-smart-light/issues"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "tapo"
   ],
   "main": "dist/index.js",
   "engines": {
@@ -25,12 +25,13 @@
   },
   "scripts": {
     "build": "rimraf ./dist && tsc",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint -c eslint.config.mjs . --max-warnings=0",
     "prepublishOnly": "npm run lint && npm run build",
     "watch": "npm run build && npm link && nodemon"
   },
   "dependencies": {
-    "homebridge-lib": "^7.1.12"
+    "homebridge-lib": "^7.1.12",
+    "tp-link-tapo-connect": "^2.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

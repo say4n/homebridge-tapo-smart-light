@@ -6,5 +6,8 @@
   "editor.rulers": [
     140
   ],
-  "eslint.enable": true
+  "eslint.enable": true,
+  "cSpell.words": [
+    "tapo"
+  ]
 }

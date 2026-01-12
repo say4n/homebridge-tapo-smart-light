@@ -1,17 +1,32 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "Tapo",
   "pluginType": "platform",
   "singular": true,
   "strictValidation": false,
   "schema": {
     "type": "object",
-    "required": ["name"],
+    "required": [
+      "name",
+      "email",
+      "password"
+    ],
     "additionalProperties": false,
     "properties": {
       "name": {
         "title": "Name",
         "type": "string",
-        "default": "Example Dynamic Platform"
+        "default": "Tapo"
+      },
+      "email": {
+        "title": "Tapo Email",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "Tapo Password",
+        "type": "string",
+        "format": "password",
+        "required": true
       }
     }
   }
