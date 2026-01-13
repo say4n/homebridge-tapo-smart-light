@@ -19,9 +19,9 @@ export interface TapoDeviceInfo {
 }
 
 export interface TapoDeviceClient {
-  turnOn(): Promise<void>;
-  turnOff(): Promise<void>;
-  setBrightness(level: number): Promise<void>;
-  setHSL(hue: number, saturation: number, brightness: number): Promise<void>;
+  turnOn(transitionMs?: number): Promise<void>;
+  turnOff(transitionMs?: number): Promise<void>;
+  setBrightness(level: number, transitionMs?: number): Promise<void>;
+  setHSL(hue: number, saturation: number, brightness: number, transitionMs?: number): Promise<void>;
   getDeviceInfo(): Promise<TapoDeviceInfo>;
 }

@@ -19,6 +19,7 @@ export class TapoPlatformAccessory {
   } = {};
   private updateTimeout: NodeJS.Timeout | null = null;
   private readonly debounceMs = 300; // 300ms debounce
+  private readonly transitionMs = 1000; // 1 second gradual transition
 
   constructor(
     private readonly platform: TapoHomebridgePlatform,
@@ -98,11 +99,11 @@ export class TapoPlatformAccessory {
       // Handle on/off state first if present
       if (updates.on !== undefined) {
         if (updates.on) {
-          await device.turnOn();
-          this.platform.log.debug('Set device On');
+          await device.turnOn(this.transitionMs);
+          this.platform.log.debug('Set device On with transition');
         } else {
-          await device.turnOff();
-          this.platform.log.debug('Set device Off');
+          await device.turnOff(this.transitionMs);
+          this.platform.log.debug('Set device Off with transition');
           return; // If turning off, skip other updates
         }
       }
@@ -113,8 +114,8 @@ export class TapoPlatformAccessory {
         const saturation = updates.saturation ?? this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
         const brightness = updates.brightness ?? this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
 
-        await device.setHSL(hue, saturation, brightness);
-        this.platform.log.debug('Set HSL ->', { hue, saturation, brightness });
+        await device.setHSL(hue, saturation, brightness, this.transitionMs);
+        this.platform.log.debug('Set HSL with transition ->', { hue, saturation, brightness });
       }
     } catch (error) {
       this.platform.log.error('Failed to apply pending updates:', error);

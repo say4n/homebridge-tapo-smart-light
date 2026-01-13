@@ -149,46 +149,70 @@ export async function createKlapClient(
 
   // Return device client interface
   return {
-    async turnOn(): Promise<void> {
+    async turnOn(transitionMs?: number): Promise<void> {
+      const params: Record<string, unknown> = {
+        device_on: true,
+      };
+
+      if (transitionMs !== undefined) {
+        params.transition_period = transitionMs;
+      }
+
       await send({
         method: 'set_device_info',
-        params: {
-          device_on: true,
-        },
+        params,
       });
     },
 
-    async turnOff(): Promise<void> {
+    async turnOff(transitionMs?: number): Promise<void> {
+      const params: Record<string, unknown> = {
+        device_on: false,
+      };
+
+      if (transitionMs !== undefined) {
+        params.transition_period = transitionMs;
+      }
+
       await send({
         method: 'set_device_info',
-        params: {
-          device_on: false,
-        },
+        params,
       });
     },
 
-    async setBrightness(level: number): Promise<void> {
+    async setBrightness(level: number, transitionMs?: number): Promise<void> {
       const normalizedLevel = Math.max(0, Math.min(100, level));
+      const params: Record<string, unknown> = {
+        brightness: normalizedLevel,
+      };
+
+      if (transitionMs !== undefined) {
+        params.transition_period = transitionMs;
+      }
+
       await send({
         method: 'set_device_info',
-        params: {
-          brightness: normalizedLevel,
-        },
+        params,
       });
     },
 
-    async setHSL(hue: number, saturation: number, brightness: number): Promise<void> {
+    async setHSL(hue: number, saturation: number, brightness: number, transitionMs?: number): Promise<void> {
       const normalizedHue = hue % 360;
       const normalizedSat = Math.max(0, Math.min(100, saturation));
       const normalizedBrightness = Math.max(0, Math.min(100, brightness));
 
+      const params: Record<string, unknown> = {
+        hue: normalizedHue,
+        saturation: normalizedSat,
+        brightness: normalizedBrightness,
+      };
+
+      if (transitionMs !== undefined) {
+        params.transition_period = transitionMs;
+      }
+
       await send({
         method: 'set_device_info',
-        params: {
-          hue: normalizedHue,
-          saturation: normalizedSat,
-          brightness: normalizedBrightness,
-        },
+        params,
       });
     },
 
