@@ -198,6 +198,20 @@ export async function createKlapClient(
           hue: normalizedHue,
           saturation: normalizedSat,
           brightness: normalizedBrightness,
+          color_temp: 0, // Switch to HSL color mode
+        },
+      });
+    },
+
+    async setColorTemperature(colorTemp: number, brightness: number): Promise<void> {
+      const normalizedColorTemp = Math.max(2500, Math.min(6500, colorTemp));
+      const normalizedBrightness = Math.max(0, Math.min(100, brightness));
+
+      await send({
+        method: 'set_device_info',
+        params: {
+          color_temp: normalizedColorTemp,
+          brightness: normalizedBrightness,
         },
       });
     },

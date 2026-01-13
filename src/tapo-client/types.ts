@@ -23,5 +23,6 @@ export interface TapoDeviceClient {
   turnOff(): Promise<void>;
   setBrightness(level: number): Promise<void>;
   setHSL(hue: number, saturation: number, brightness: number): Promise<void>;
+  setColorTemperature(colorTemp: number, brightness: number): Promise<void>;
   getDeviceInfo(): Promise<TapoDeviceInfo>;
 }

@@ -17,6 +17,7 @@ export class TapoPlatformAccessory {
     brightness?: number;
     hue?: number;
     saturation?: number;
+    colorTemperature?: number; // In Kelvin (2500-6500)
   } = {};
   private updateTimeout: NodeJS.Timeout | null = null;
   private readonly debounceMs = 300; // 300ms debounce
@@ -52,6 +53,12 @@ export class TapoPlatformAccessory {
 
     this.service.getCharacteristic(this.platform.Characteristic.Saturation)
       .onSet(this.setSaturation.bind(this));
+
+    // ColorTemperature uses Mireds (micro reciprocal degrees)
+    // Tapo supports 2500K-6500K which is 154-400 mireds
+    this.service.getCharacteristic(this.platform.Characteristic.ColorTemperature)
+      .setProps({ minValue: 154, maxValue: 400 })
+      .onSet(this.setColorTemperature.bind(this));
   }
 
   async getTapoDevice() {
@@ -186,7 +193,17 @@ export class TapoPlatformAccessory {
           return;
         }
 
-        // Handle color/brightness updates with gradual transition
+        // Handle color temperature updates (takes priority over HSL if both are set)
+        if (updates.colorTemperature !== undefined) {
+          const targetBrightness = updates.brightness ??
+            this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
+
+          await device.setColorTemperature(updates.colorTemperature, targetBrightness);
+          this.platform.log.debug('Set color temperature ->', { colorTemp: updates.colorTemperature, brightness: targetBrightness });
+          return;
+        }
+
+        // Handle HSL color/brightness updates with gradual transition
         if (updates.hue !== undefined || updates.saturation !== undefined || updates.brightness !== undefined) {
           const hue = updates.hue ?? this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
           const saturation = updates.saturation ?? this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
@@ -238,6 +255,16 @@ export class TapoPlatformAccessory {
 
   async setSaturation(value: CharacteristicValue) {
     this.pendingUpdates.saturation = value as number;
+    this.scheduleUpdate();
+  }
+
+  async setColorTemperature(value: CharacteristicValue) {
+    // Convert mireds to Kelvin: K = 1,000,000 / mireds
+    const mireds = value as number;
+    const kelvin = Math.round(1000000 / mireds);
+    // Clamp to Tapo's supported range (2500K-6500K)
+    const clampedKelvin = Math.max(2500, Math.min(6500, kelvin));
+    this.pendingUpdates.colorTemperature = clampedKelvin;
     this.scheduleUpdate();
   }
 }
