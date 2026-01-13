@@ -89,20 +89,32 @@ export class TapoPlatformAccessory {
    * Wraps a device operation with automatic retry on session expiration
    */
   private async withRetry<T>(operation: (device: TapoDeviceClient) => Promise<T>): Promise<T> {
-    try {
-      const device = await this.getTapoDevice();
-      return await operation(device);
-    } catch (error: unknown) {
-      // If session expired, clear the cached device and retry once
-      if (error instanceof Error && error.name === 'SessionExpiredError') {
-        this.platform.log.info('Session expired, re-authenticating...');
-        this.tapoDevice = undefined;
+    const maxRetries = 3;
+    let lastError: Error | undefined;
 
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
         const device = await this.getTapoDevice();
         return await operation(device);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'SessionExpiredError') {
+          lastError = error;
+          // Only log on first retry attempt
+          if (attempt === 0) {
+            this.platform.log.debug('Session expired, re-authenticating...');
+          }
+          this.tapoDevice = undefined;
+          // Continue to next retry attempt
+          continue;
+        }
+        // Non-session errors are thrown immediately
+        throw error;
       }
-      throw error;
     }
+
+    // All retries exhausted
+    this.platform.log.warn('Session recovery failed after', maxRetries, 'retries');
+    throw lastError;
   }
 
   private scheduleUpdate() {
@@ -219,7 +231,12 @@ export class TapoPlatformAccessory {
       });
     } catch (error) {
       this.transitionInProgress = false;
-      this.platform.log.error('Failed to apply pending updates:', error);
+      // Session errors are handled by withRetry, only log if truly failed
+      if (error instanceof Error && error.name === 'SessionExpiredError') {
+        this.platform.log.debug('Update failed due to session issue:', error.message);
+      } else {
+        this.platform.log.error('Failed to apply pending updates:', error);
+      }
     }
   }
 
