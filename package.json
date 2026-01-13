@@ -9,7 +9,7 @@
   "homepage": "https://github.com/say4n/homebridge-tapo-smart-light#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/say4n/homebridge-tapo-smart-light.git"
+    "url": "git+https://github.com/say4n/homebridge-tapo-smart-light.git"
   },
   "bugs": {
     "url": "https://github.com/say4n/homebridge-tapo-smart-light/issues"
