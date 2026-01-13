@@ -1,5 +1,5 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { loginDevice } from 'tp-link-tapo-connect';
+import { loginDevice } from './tapo-client/index.js';
 
 import type { TapoHomebridgePlatform } from './TapoHomebridgePlatform.js';
 

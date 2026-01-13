@@ -1,5 +1,5 @@
 import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import { cloudLogin } from 'tp-link-tapo-connect';
+import { cloudLogin } from './tapo-client/index.js';
 
 import { TapoPlatformAccessory } from './TapoPlatformAccessory.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';

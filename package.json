@@ -2,7 +2,7 @@
   "name": "@say4n/homebridge-tapo-smart-light",
   "displayName": "Homebridge Tapo L630",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Homebridge plugin for Tapo L630 smart lights.",
   "author": "say4n",
   "license": "Apache-2.0",
@@ -30,8 +30,9 @@
     "watch": "npm run build && npm link && nodemon"
   },
   "dependencies": {
+    "axios": "^1.7.9",
     "homebridge-lib": "^7.1.12",
-    "tp-link-tapo-connect": "^2.0.8"
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
