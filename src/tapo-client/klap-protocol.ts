@@ -111,7 +111,15 @@ export async function createKlapClient(
   const decrypt = (payload: Buffer): unknown => {
     const cipher = createDecipheriv(AES_CIPHER_ALGORITHM, key, ivWithSeq(iv, seq));
     const ciphertext = cipher.update(payload.slice(32));
-    return JSON.parse(Buffer.concat([ciphertext, cipher.final()]).toString());
+    const decrypted = Buffer.concat([ciphertext, cipher.final()]).toString();
+    try {
+      return JSON.parse(decrypted);
+    } catch {
+      // JSON parse failure indicates encryption state is out of sync
+      const sessionError = new Error('Decryption failed - session state out of sync');
+      sessionError.name = 'SessionExpiredError';
+      throw sessionError;
+    }
   };
 
   const encryptAndSign = (payload: object): Buffer => {
