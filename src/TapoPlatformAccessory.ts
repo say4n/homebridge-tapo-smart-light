@@ -10,6 +10,16 @@ export class TapoPlatformAccessory {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private loginPromise: Promise<any> | null = null;
 
+  // Debouncing state
+  private pendingUpdates: {
+    on?: boolean;
+    brightness?: number;
+    hue?: number;
+    saturation?: number;
+  } = {};
+  private updateTimeout: NodeJS.Timeout | null = null;
+  private readonly debounceMs = 300; // 300ms debounce
+
   constructor(
     private readonly platform: TapoHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
@@ -61,18 +71,59 @@ export class TapoPlatformAccessory {
     return this.loginPromise;
   }
 
-  async setOn(value: CharacteristicValue) {
+  private scheduleUpdate() {
+    // Clear existing timeout
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
+
+    // Schedule new update
+    this.updateTimeout = setTimeout(() => {
+      this.applyPendingUpdates();
+    }, this.debounceMs);
+  }
+
+  private async applyPendingUpdates() {
+    const updates = { ...this.pendingUpdates };
+    this.pendingUpdates = {};
+    this.updateTimeout = null;
+
+    if (Object.keys(updates).length === 0) {
+      return;
+    }
+
     try {
       const device = await this.getTapoDevice();
-      if (value) {
-        await device.turnOn();
-      } else {
-        await device.turnOff();
+
+      // Handle on/off state first if present
+      if (updates.on !== undefined) {
+        if (updates.on) {
+          await device.turnOn();
+          this.platform.log.debug('Set device On');
+        } else {
+          await device.turnOff();
+          this.platform.log.debug('Set device Off');
+          return; // If turning off, skip other updates
+        }
       }
-      this.platform.log.debug('Set Characteristic On ->', value);
+
+      // Handle color/brightness updates together
+      if (updates.hue !== undefined || updates.saturation !== undefined || updates.brightness !== undefined) {
+        const hue = updates.hue ?? this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
+        const saturation = updates.saturation ?? this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
+        const brightness = updates.brightness ?? this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
+
+        await device.setHSL(hue, saturation, brightness);
+        this.platform.log.debug('Set HSL ->', { hue, saturation, brightness });
+      }
     } catch (error) {
-      this.platform.log.error('Failed to set On characteristic:', error);
+      this.platform.log.error('Failed to apply pending updates:', error);
     }
+  }
+
+  async setOn(value: CharacteristicValue) {
+    this.pendingUpdates.on = value as boolean;
+    this.scheduleUpdate();
   }
 
   async getOn(): Promise<CharacteristicValue> {
@@ -89,37 +140,18 @@ export class TapoPlatformAccessory {
   }
 
   async setBrightness(value: CharacteristicValue) {
-    try {
-      const device = await this.getTapoDevice();
-      const brightnessLevel = typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 100;
-      await device.setBrightness(brightnessLevel);
-      this.platform.log.debug('Set Characteristic Brightness -> ', brightnessLevel);
-    } catch (error) {
-      this.platform.log.error('Failed to set Brightness characteristic:', error);
-    }
+    const brightnessLevel = typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 100;
+    this.pendingUpdates.brightness = brightnessLevel;
+    this.scheduleUpdate();
   }
 
   async setHue(value: CharacteristicValue) {
-    try {
-      const device = await this.getTapoDevice();
-      const saturation = this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
-      const brightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
-      await device.setHSL(value as number, saturation, brightness);
-      this.platform.log.debug('Set Characteristic Hue -> ', value);
-    } catch (error) {
-      this.platform.log.error('Failed to set Hue characteristic:', error);
-    }
+    this.pendingUpdates.hue = value as number;
+    this.scheduleUpdate();
   }
 
   async setSaturation(value: CharacteristicValue) {
-    try {
-      const device = await this.getTapoDevice();
-      const hue = this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
-      const brightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
-      await device.setHSL(hue, value as number, brightness);
-      this.platform.log.debug('Set Characteristic Saturation -> ', value);
-    } catch (error) {
-      this.platform.log.error('Failed to set Saturation characteristic:', error);
-    }
+    this.pendingUpdates.saturation = value as number;
+    this.scheduleUpdate();
   }
 }

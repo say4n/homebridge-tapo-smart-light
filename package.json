@@ -2,7 +2,7 @@
   "name": "@say4n/homebridge-tapo-smart-light",
   "displayName": "Homebridge Tapo L630",
   "type": "module",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A Homebridge plugin for Tapo L630 smart lights.",
   "author": "say4n",
   "license": "Apache-2.0",
