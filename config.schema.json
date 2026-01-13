@@ -27,6 +27,14 @@
         "type": "string",
         "format": "password",
         "required": true
+      },
+      "transitionDuration": {
+        "title": "Transition Duration (ms)",
+        "type": "number",
+        "default": 200,
+        "minimum": 0,
+        "maximum": 5000,
+        "description": "Duration in milliseconds for gradual on/off and brightness transitions"
       }
     }
   }

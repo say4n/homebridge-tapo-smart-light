@@ -20,10 +20,9 @@ export class TapoPlatformAccessory {
   } = {};
   private updateTimeout: NodeJS.Timeout | null = null;
   private readonly debounceMs = 300; // 300ms debounce
-  private readonly transitionMs = 1000; // 1 second gradual transition
 
   // Gradual transition settings
-  private readonly transitionDuration = 1000; // 1 second transition
+  private readonly transitionDuration: number;
   private readonly transitionSteps = 20; // Number of steps in transition
   private transitionInProgress = false;
 
@@ -31,6 +30,7 @@ export class TapoPlatformAccessory {
     private readonly platform: TapoHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
+    this.transitionDuration = this.platform.config.transitionDuration ?? 200;
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'TP-Link')
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceModel)
