@@ -124,27 +124,37 @@ export async function createKlapClient(
     seq = incrementSeq(seq);
     const encryptedRequest = encryptAndSign(deviceRequest);
 
-    const response = await axios({
-      method: 'post',
-      url: `http://${deviceIp}/app/request`,
-      data: encryptedRequest,
-      responseType: 'arraybuffer',
-      headers: {
-        Cookie: sessionCookie,
-      },
-      params: {
-        seq: seq.readInt32BE(),
-      },
-      timeout: 10000,
-    });
+    try {
+      const response = await axios({
+        method: 'post',
+        url: `http://${deviceIp}/app/request`,
+        data: encryptedRequest,
+        responseType: 'arraybuffer',
+        headers: {
+          Cookie: sessionCookie,
+        },
+        params: {
+          seq: seq.readInt32BE(),
+        },
+        timeout: 10000,
+      });
 
-    const decryptedResponse = decrypt(response.data) as { error_code?: number; result?: unknown };
+      const decryptedResponse = decrypt(response.data) as { error_code?: number; result?: unknown };
 
-    if (decryptedResponse.error_code && decryptedResponse.error_code !== 0) {
-      throw new Error(`Device error: ${decryptedResponse.error_code}`);
+      if (decryptedResponse.error_code && decryptedResponse.error_code !== 0) {
+        throw new Error(`Device error: ${decryptedResponse.error_code}`);
+      }
+
+      return decryptedResponse.result;
+    } catch (error: unknown) {
+      // Check if this is a 403 Forbidden error (session expired)
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        const sessionError = new Error('Session expired, re-authentication required');
+        sessionError.name = 'SessionExpiredError';
+        throw sessionError;
+      }
+      throw error;
     }
-
-    return decryptedResponse.result;
   };
 
   // Return device client interface
