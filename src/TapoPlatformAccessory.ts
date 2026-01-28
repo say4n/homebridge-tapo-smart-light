@@ -159,8 +159,15 @@ export class TapoPlatformAccessory {
           return;
         }
 
-        // Handle HSL color/brightness updates
-        if (updates.hue !== undefined || updates.saturation !== undefined || updates.brightness !== undefined) {
+        // Handle brightness-only updates (no color change)
+        if (updates.brightness !== undefined && updates.hue === undefined && updates.saturation === undefined) {
+          await device.setBrightness(updates.brightness);
+          this.platform.log.debug('Set brightness ->', updates.brightness);
+          return;
+        }
+
+        // Handle HSL color updates (with optional brightness)
+        if (updates.hue !== undefined || updates.saturation !== undefined) {
           const hue = updates.hue ?? this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
           const saturation = updates.saturation ?? this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
           const targetBrightness = updates.brightness ??
