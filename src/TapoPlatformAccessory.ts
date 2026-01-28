@@ -22,16 +22,10 @@ export class TapoPlatformAccessory {
   private updateTimeout: NodeJS.Timeout | null = null;
   private readonly debounceMs = 300; // 300ms debounce
 
-  // Gradual transition settings
-  private readonly transitionDuration: number;
-  private readonly transitionSteps = 20; // Number of steps in transition
-  private transitionInProgress = false;
-
   constructor(
     private readonly platform: TapoHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-    this.transitionDuration = this.platform.config.transitionDuration ?? 200;
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'TP-Link')
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceModel)
@@ -129,40 +123,6 @@ export class TapoPlatformAccessory {
     }, this.debounceMs);
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private async gradualTransition(
-    device: TapoDeviceClient,
-    startBrightness: number,
-    endBrightness: number,
-    hue?: number,
-    saturation?: number,
-  ): Promise<void> {
-    const stepDelay = this.transitionDuration / this.transitionSteps;
-    const brightnessDelta = (endBrightness - startBrightness) / this.transitionSteps;
-
-    for (let i = 1; i <= this.transitionSteps; i++) {
-      if (!this.transitionInProgress) {
-        // Transition was interrupted
-        return;
-      }
-
-      const currentBrightness = Math.round(startBrightness + brightnessDelta * i);
-
-      if (hue !== undefined && saturation !== undefined) {
-        await device.setHSL(hue, saturation, currentBrightness);
-      } else {
-        await device.setBrightness(currentBrightness);
-      }
-
-      if (i < this.transitionSteps) {
-        await this.sleep(stepDelay);
-      }
-    }
-  }
-
   private async applyPendingUpdates() {
     const updates = { ...this.pendingUpdates };
     this.pendingUpdates = {};
@@ -172,36 +132,20 @@ export class TapoPlatformAccessory {
       return;
     }
 
-    // Cancel any in-progress transition
-    this.transitionInProgress = false;
-
     try {
       await this.withRetry(async (device) => {
-        // Handle turning off with gradual fade
         if (updates.on === false) {
-          this.transitionInProgress = true;
-          const currentBrightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
-
-          if (currentBrightness > 0) {
-            await this.gradualTransition(device, currentBrightness, 1);
-          }
-
           await device.turnOff();
-          this.transitionInProgress = false;
-          this.platform.log.debug('Set device Off with gradual fade');
+          this.platform.log.debug('Set device Off');
           return;
         }
 
-        // Handle turning on with gradual fade
         if (updates.on === true) {
+          await device.turnOn();
           const targetBrightness = updates.brightness ??
             this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
-
-          await device.turnOn();
-          this.transitionInProgress = true;
-          await this.gradualTransition(device, 1, targetBrightness);
-          this.transitionInProgress = false;
-          this.platform.log.debug('Set device On with gradual fade');
+          await device.setBrightness(targetBrightness);
+          this.platform.log.debug('Set device On with brightness ->', targetBrightness);
           return;
         }
 
@@ -215,23 +159,18 @@ export class TapoPlatformAccessory {
           return;
         }
 
-        // Handle HSL color/brightness updates with gradual transition
+        // Handle HSL color/brightness updates
         if (updates.hue !== undefined || updates.saturation !== undefined || updates.brightness !== undefined) {
           const hue = updates.hue ?? this.service.getCharacteristic(this.platform.Characteristic.Hue).value as number;
           const saturation = updates.saturation ?? this.service.getCharacteristic(this.platform.Characteristic.Saturation).value as number;
           const targetBrightness = updates.brightness ??
             this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
-          const currentBrightness = this.service.getCharacteristic(this.platform.Characteristic.Brightness).value as number;
 
-          this.transitionInProgress = true;
-          await this.gradualTransition(device, currentBrightness, targetBrightness, hue, saturation);
-          this.transitionInProgress = false;
-          this.platform.log.debug('Set HSL with gradual transition ->', { hue, saturation, brightness: targetBrightness });
+          await device.setHSL(hue, saturation, targetBrightness);
+          this.platform.log.debug('Set HSL ->', { hue, saturation, brightness: targetBrightness });
         }
       });
     } catch (error) {
-      this.transitionInProgress = false;
-      // Session errors are handled by withRetry, only log if truly failed
       if (error instanceof Error && error.name === 'SessionExpiredError') {
         this.platform.log.debug('Update failed due to session issue:', error.message);
       } else {
