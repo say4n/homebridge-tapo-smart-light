@@ -1,3 +1,4 @@
+import axios from 'axios';
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { loginDevice } from './tapo-client/index.js';
 import type { TapoDeviceClient } from './tapo-client/types.js';
@@ -100,6 +101,12 @@ export class TapoPlatformAccessory {
           this.tapoDevice = undefined;
           // Continue to next retry attempt
           continue;
+        }
+        // Reset cached device on network connection errors (no HTTP response received)
+        // so the next attempt re-discovers the device IP via ARP.
+        // This handles cases where the device rebooted and received a new IP address.
+        if (axios.isAxiosError(error) && !error.response) {
+          this.tapoDevice = undefined;
         }
         // Non-session errors are thrown immediately
         throw error;
